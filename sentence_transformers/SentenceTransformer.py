@@ -808,8 +808,8 @@ class SentenceTransformer(nn.Sequential):
                     else:
                         loss_value, accuracy = loss_model(features, labels)
                         accelerator.backward(loss_value)
-                        training_losses.append(accelerator.gather(float(loss_value.detach().numpy())))
-                        training_accuracies.append(accelerator.gather(accuracy))
+                        training_losses.append(accelerator.gather(torch.atleast_1d(loss_value)))
+                        training_accuracies.append(accelerator.gather(torch.atleast_1d(accuracy)))
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
                         if training_steps % gradient_accumulation == 0:
                             optimizer.step()
@@ -822,8 +822,8 @@ class SentenceTransformer(nn.Sequential):
                 if log_every_steps > 0 and global_step % log_every_steps == 0:
                     if accelerator.is_main_process:
                         # get latest loss and acc
-                        train_loss = np.mean(training_losses[index_last_train_loss:])
-                        train_acc = np.mean(training_accuracies[index_last_train_loss:])
+                        train_loss = torch.mean(torch.cat(training_losses[index_last_train_loss:]))
+                        train_acc = torch.mean(torch.cat(training_accuracies[index_last_train_loss:]))
                         print(f'Training step {global_step}: loss: {train_loss:.3f}, accuracy: {train_acc:.3f}')
                     # keep track of number of loss stored
                     index_last_train_loss = len(training_losses)
@@ -882,10 +882,10 @@ class SentenceTransformer(nn.Sequential):
                 data = next(validation_iterator)
             features, labels = data
             loss_value, accuracy = loss_model(features, labels)
-            eval_losses.append(accelerator.gather(float(loss_value.detach().numpy())))
-            eval_accuracies.append(accelerator.gather(accuracy))
-        eval_loss = np.mean(eval_losses)
-        eval_acc = np.mean(eval_accuracies)
+            eval_losses.append(accelerator.gather(torch.atleast_1d(loss_value)))
+            eval_accuracies.append(accelerator.gather(torch.atleast_1d(accuracy)))
+        eval_loss = torch.mean(torch.cat(eval_losses))
+        eval_acc = torch.mean(torch.cat(eval_accuracies))
         if accelerator.is_main_process:
             score = eval_acc
             if score > self.best_score:
