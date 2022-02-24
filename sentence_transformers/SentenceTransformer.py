@@ -824,7 +824,7 @@ class SentenceTransformer(nn.Sequential):
                         # get latest loss and acc
                         train_loss = torch.mean(torch.cat(training_losses[index_last_train_loss:]))
                         train_acc = torch.mean(torch.cat(training_accuracies[index_last_train_loss:]))
-                        print(f'Training step {global_step}: loss: {train_loss:.3f}, accuracy: {train_acc:.3f}')
+                        logger.warning(f'Training step {global_step}: loss: {train_loss:.3f}, accuracy: {train_acc:.3f}')
                     # keep track of number of loss stored
                     index_last_train_loss = len(training_losses)
                     assert index_last_train_loss == len(training_accuracies)
@@ -835,7 +835,7 @@ class SentenceTransformer(nn.Sequential):
                         # get new loss and acc since last eval step
                         train_loss = np.mean(training_losses[index_last_eval_loss:])
                         train_acc = np.mean(training_accuracies[index_last_eval_loss:])
-                        print(f'Evaluation step {global_step}: eval loss: {eval_loss:.3f}, eval accuracy: {eval_acc:.3f}')
+                        logger.warning(f'Evaluation step {global_step}: eval loss: {eval_loss:.3f}, eval accuracy: {eval_acc:.3f}')
                         results['eval_acc'].append(eval_acc)
                         results['eval_loss'].append(eval_loss)
                         results['train_acc'].append(train_acc)
