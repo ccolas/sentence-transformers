@@ -30,8 +30,10 @@ from .util import import_from_string, batch_to_device, fullname, snapshot_downlo
 from .models import Transformer, Pooling, Dense
 from .model_card_templates import ModelCardTemplate
 from . import __version__
+import pandas as pd
 
 logger = logging.getLogger(__name__)
+
 
 class SentenceTransformer(nn.Sequential):
     """
@@ -42,7 +44,9 @@ class SentenceTransformer(nn.Sequential):
     :param device: Device (like 'cuda' / 'cpu') that should be used for computation. If None, checks if a GPU can be used.
     :param cache_folder: Path to store models
     """
-    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None, **auto_model_kwargs):
+
+    def __init__(self, model_name_or_path: Optional[str] = None, modules: Optional[Iterable[nn.Module]] = None, device: Optional[str] = None, cache_folder: Optional[str] = None,
+                 **auto_model_kwargs):
         self._model_card_vars = {}
         self._model_card_text = None
         self._model_config = {}
@@ -62,14 +66,27 @@ class SentenceTransformer(nn.Sequential):
         if model_name_or_path is not None and model_name_or_path != "":
             logger.info("Load pretrained SentenceTransformer: {}".format(model_name_or_path))
 
-            #Old models that don't belong to any organization
-            basic_transformer_models = ['albert-base-v1', 'albert-base-v2', 'albert-large-v1', 'albert-large-v2', 'albert-xlarge-v1', 'albert-xlarge-v2', 'albert-xxlarge-v1', 'albert-xxlarge-v2', 'bert-base-cased-finetuned-mrpc', 'bert-base-cased', 'bert-base-chinese', 'bert-base-german-cased', 'bert-base-german-dbmdz-cased', 'bert-base-german-dbmdz-uncased', 'bert-base-multilingual-cased', 'bert-base-multilingual-uncased', 'bert-base-uncased', 'bert-large-cased-whole-word-masking-finetuned-squad', 'bert-large-cased-whole-word-masking', 'bert-large-cased', 'bert-large-uncased-whole-word-masking-finetuned-squad', 'bert-large-uncased-whole-word-masking', 'bert-large-uncased', 'camembert-base', 'ctrl', 'distilbert-base-cased-distilled-squad', 'distilbert-base-cased', 'distilbert-base-german-cased', 'distilbert-base-multilingual-cased', 'distilbert-base-uncased-distilled-squad', 'distilbert-base-uncased-finetuned-sst-2-english', 'distilbert-base-uncased', 'distilgpt2', 'distilroberta-base', 'gpt2-large', 'gpt2-medium', 'gpt2-xl', 'gpt2', 'openai-gpt', 'roberta-base-openai-detector', 'roberta-base', 'roberta-large-mnli', 'roberta-large-openai-detector', 'roberta-large', 't5-11b', 't5-3b', 't5-base', 't5-large', 't5-small', 'transfo-xl-wt103', 'xlm-clm-ende-1024', 'xlm-clm-enfr-1024', 'xlm-mlm-100-1280', 'xlm-mlm-17-1280', 'xlm-mlm-en-2048', 'xlm-mlm-ende-1024', 'xlm-mlm-enfr-1024', 'xlm-mlm-enro-1024', 'xlm-mlm-tlm-xnli15-1024', 'xlm-mlm-xnli15-1024', 'xlm-roberta-base', 'xlm-roberta-large-finetuned-conll02-dutch', 'xlm-roberta-large-finetuned-conll02-spanish', 'xlm-roberta-large-finetuned-conll03-english', 'xlm-roberta-large-finetuned-conll03-german', 'xlm-roberta-large', 'xlnet-base-cased', 'xlnet-large-cased']
+            # Old models that don't belong to any organization
+            basic_transformer_models = ['albert-base-v1', 'albert-base-v2', 'albert-large-v1', 'albert-large-v2', 'albert-xlarge-v1', 'albert-xlarge-v2', 'albert-xxlarge-v1',
+                                        'albert-xxlarge-v2', 'bert-base-cased-finetuned-mrpc', 'bert-base-cased', 'bert-base-chinese', 'bert-base-german-cased',
+                                        'bert-base-german-dbmdz-cased', 'bert-base-german-dbmdz-uncased', 'bert-base-multilingual-cased', 'bert-base-multilingual-uncased',
+                                        'bert-base-uncased', 'bert-large-cased-whole-word-masking-finetuned-squad', 'bert-large-cased-whole-word-masking', 'bert-large-cased',
+                                        'bert-large-uncased-whole-word-masking-finetuned-squad', 'bert-large-uncased-whole-word-masking', 'bert-large-uncased', 'camembert-base',
+                                        'ctrl', 'distilbert-base-cased-distilled-squad', 'distilbert-base-cased', 'distilbert-base-german-cased',
+                                        'distilbert-base-multilingual-cased', 'distilbert-base-uncased-distilled-squad', 'distilbert-base-uncased-finetuned-sst-2-english',
+                                        'distilbert-base-uncased', 'distilgpt2', 'distilroberta-base', 'gpt2-large', 'gpt2-medium', 'gpt2-xl', 'gpt2', 'openai-gpt',
+                                        'roberta-base-openai-detector', 'roberta-base', 'roberta-large-mnli', 'roberta-large-openai-detector', 'roberta-large', 't5-11b', 't5-3b',
+                                        't5-base', 't5-large', 't5-small', 'transfo-xl-wt103', 'xlm-clm-ende-1024', 'xlm-clm-enfr-1024', 'xlm-mlm-100-1280', 'xlm-mlm-17-1280',
+                                        'xlm-mlm-en-2048', 'xlm-mlm-ende-1024', 'xlm-mlm-enfr-1024', 'xlm-mlm-enro-1024', 'xlm-mlm-tlm-xnli15-1024', 'xlm-mlm-xnli15-1024',
+                                        'xlm-roberta-base', 'xlm-roberta-large-finetuned-conll02-dutch', 'xlm-roberta-large-finetuned-conll02-spanish',
+                                        'xlm-roberta-large-finetuned-conll03-english', 'xlm-roberta-large-finetuned-conll03-german', 'xlm-roberta-large', 'xlnet-base-cased',
+                                        'xlnet-large-cased']
 
             if os.path.exists(model_name_or_path):
-                #Load from path
+                # Load from path
                 model_path = model_name_or_path
             else:
-                #Not a path, load from hub
+                # Not a path, load from hub
                 if '\\' in model_name_or_path or model_name_or_path.count('/') > 1:
                     raise ValueError("Path {} not found".format(model_name_or_path))
 
@@ -81,14 +98,14 @@ class SentenceTransformer(nn.Sequential):
 
                 # Download from hub with caching
                 snapshot_download(model_name_or_path,
-                                    cache_dir=cache_folder,
-                                    library_name='sentence-transformers',
-                                    library_version=__version__,
-                                    ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'])
+                                  cache_dir=cache_folder,
+                                  library_name='sentence-transformers',
+                                  library_version=__version__,
+                                  ignore_files=['flax_model.msgpack', 'rust_model.ot', 'tf_model.h5'])
 
-            if os.path.exists(os.path.join(model_path, 'modules.json')):    #Load as SentenceTransformer model
+            if os.path.exists(os.path.join(model_path, 'modules.json')):  # Load as SentenceTransformer model
                 modules = self._load_sbert_model(model_path)
-            else:   #Load with AutoModel
+            else:  # Load with AutoModel
                 modules = self._load_auto_model(model_path, **auto_model_kwargs)
 
         if modules is not None and not isinstance(modules, OrderedDict):
@@ -100,8 +117,6 @@ class SentenceTransformer(nn.Sequential):
             logger.info("Use pytorch device: {}".format(device))
 
         self._target_device = torch.device(device)
-
-
 
     def encode(self, sentences: Union[str, List[str]],
                batch_size: int = 32,
@@ -130,7 +145,7 @@ class SentenceTransformer(nn.Sequential):
         """
         self.eval()
         if show_progress_bar is None:
-            show_progress_bar = (logger.getEffectiveLevel()==logging.INFO or logger.getEffectiveLevel()==logging.DEBUG)
+            show_progress_bar = (logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG)
 
         if convert_to_tensor:
             convert_to_numpy = False
@@ -140,7 +155,7 @@ class SentenceTransformer(nn.Sequential):
             convert_to_numpy = False
 
         input_was_string = False
-        if isinstance(sentences, str) or not hasattr(sentences, '__len__'): #Cast an individual sentence to a list with length 1
+        if isinstance(sentences, str) or not hasattr(sentences, '__len__'):  # Cast an individual sentence to a list with length 1
             sentences = [sentences]
             input_was_string = True
 
@@ -159,14 +174,14 @@ class SentenceTransformer(nn.Sequential):
                      for rank in range(world_size)]
             # dividing the list of sentences into batches
             limits = np.cumsum([0] + sizes)
-            local_sentences = sentences_sorted[limits[rank]:limits[rank+1]]
+            local_sentences = sentences_sorted[limits[rank]:limits[rank + 1]]
             # embedding
             local_embeddings = []
             for start_index in trange(0, len(local_sentences), batch_size, desc="Batches", disable=not show_progress_bar):
                 sentences_batch = local_sentences[start_index:start_index + batch_size]
                 batch_embeddings = self._encode(sentences_batch, device=device, output_value=output_value,
-                                          convert_to_numpy=False, normalize_embeddings=normalize_embeddings,
-                                          multiprocessing=False)
+                                                convert_to_numpy=False, normalize_embeddings=normalize_embeddings,
+                                                multiprocessing=False)
                 local_embeddings.extend(batch_embeddings)
             local_embeddings = torch.stack(local_embeddings)
             # gathering everything thanks to the size information from earlier
@@ -269,7 +284,7 @@ class SentenceTransformer(nn.Sequential):
                 target_devices = ['cuda:{}'.format(i) for i in range(torch.cuda.device_count())]
             else:
                 logger.info("CUDA is not available. Start 4 CPU worker")
-                target_devices = ['cpu']*4
+                target_devices = ['cpu'] * 4
 
         logger.info("Start multi-process pool on devices: {}".format(', '.join(map(str, target_devices))))
 
@@ -285,7 +300,6 @@ class SentenceTransformer(nn.Sequential):
 
         return {'input': input_queue, 'output': output_queue, 'processes': processes}
 
-
     @staticmethod
     def stop_multi_process_pool(pool):
         """
@@ -300,7 +314,6 @@ class SentenceTransformer(nn.Sequential):
 
         pool['input'].close()
         pool['output'].close()
-
 
     def encode_multi_process(self, sentences: List[str], pool: Dict[str, object], batch_size: int = 32, chunk_size: int = None):
         """
@@ -348,12 +361,10 @@ class SentenceTransformer(nn.Sequential):
         while True:
             try:
                 id, batch_size, sentences = input_queue.get()
-                embeddings = model.encode(sentences, device=target_device,  show_progress_bar=False, convert_to_numpy=True, batch_size=batch_size)
+                embeddings = model.encode(sentences, device=target_device, show_progress_bar=False, convert_to_numpy=True, batch_size=batch_size)
                 results_queue.put([id, embeddings])
             except queue.Empty:
                 break
-
-
 
     def get_max_seq_length(self):
         """
@@ -403,24 +414,24 @@ class SentenceTransformer(nn.Sequential):
         logger.info("Save model to {}".format(path))
         modules_config = []
 
-        #Save some model info
+        # Save some model info
         if '__version__' not in self._model_config:
             self._model_config['__version__'] = {
-                    'sentence_transformers': __version__,
-                    'transformers': transformers.__version__,
-                    'pytorch': torch.__version__,
-                }
+                'sentence_transformers': __version__,
+                'transformers': transformers.__version__,
+                'pytorch': torch.__version__,
+            }
 
         with open(os.path.join(path, 'config_sentence_transformers.json'), 'w') as fOut:
             json.dump(self._model_config, fOut, indent=2)
 
-        #Save modules
+        # Save modules
         for idx, name in enumerate(self._modules):
             module = self._modules[name]
-            if idx == 0 and isinstance(module, Transformer):    #Save transformer model in the main folder
+            if idx == 0 and isinstance(module, Transformer):  # Save transformer model in the main folder
                 model_path = path + "/"
             else:
-                model_path = os.path.join(path, str(idx)+"_"+type(module).__name__)
+                model_path = os.path.join(path, str(idx) + "_" + type(module).__name__)
 
             os.makedirs(model_path, exist_ok=True)
             module.save(model_path)
@@ -443,7 +454,9 @@ class SentenceTransformer(nn.Sequential):
             tags = ModelCardTemplate.__TAGS__.copy()
             model_card = ModelCardTemplate.__MODEL_CARD__
 
-            if len(self._modules) == 2 and isinstance(self._first_module(), Transformer) and isinstance(self._last_module(), Pooling) and self._last_module().get_pooling_mode_str() in ['cls', 'max', 'mean']:
+            if len(self._modules) == 2 and isinstance(self._first_module(), Transformer) and isinstance(self._last_module(),
+                                                                                                        Pooling) and self._last_module().get_pooling_mode_str() in ['cls', 'max',
+                                                                                                                                                                    'mean']:
                 pooling_module = self._last_module()
                 pooling_mode = pooling_module.get_pooling_mode_str()
                 model_card = model_card.replace("{USAGE_TRANSFORMERS_SECTION}", ModelCardTemplate.__USAGE_TRANSFORMERS__)
@@ -455,7 +468,7 @@ class SentenceTransformer(nn.Sequential):
             model_card = model_card.replace("{FULL_MODEL_STR}", str(self))
 
             # Add tags
-            model_card = model_card.replace("{TAGS}", "\n".join(["- "+t for t in tags]))
+            model_card = model_card.replace("{TAGS}", "\n".join(["- " + t for t in tags]))
 
             # Add dim info
             self._model_card_vars["{NUM_DIMENSIONS}"] = self.get_sentence_embedding_dimension()
@@ -508,14 +521,14 @@ class SentenceTransformer(nn.Sequential):
 
         endpoint = "https://huggingface.co"
         repo_url = HfApi(endpoint=endpoint).create_repo(
-                token,
-                repo_name,
-                organization=organization,
-                private=private,
-                repo_type=None,
-                exist_ok=exist_ok,
-            )
-        full_model_name = repo_url[len(endpoint)+1:].strip("/")
+            token,
+            repo_name,
+            organization=organization,
+            private=private,
+            repo_type=None,
+            exist_ok=exist_ok,
+        )
+        full_model_name = repo_url[len(endpoint) + 1:].strip("/")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             # First create the repo (and clone its content if it's nonempty).
@@ -529,7 +542,7 @@ class SentenceTransformer(nn.Sequential):
                 create_model_card = replace_model_card or not os.path.exists(os.path.join(tmp_dir, 'README.md'))
                 self.save(tmp_dir, model_name=full_model_name, create_model_card=create_model_card)
 
-            #Find files larger 5M and track with git-lfs
+            # Find files larger 5M and track with git-lfs
             large_files = []
             for root, dirs, files in os.walk(tmp_dir):
                 for filename in files:
@@ -564,7 +577,6 @@ class SentenceTransformer(nn.Sequential):
                 logging.warning("Error when deleting temp folder: {}".format(str(e)))
                 pass
 
-
         return push_return
 
     def smart_batching_collate(self, batch):
@@ -577,15 +589,15 @@ class SentenceTransformer(nn.Sequential):
         :return:
             a batch of tensors for the model
         """
-        num_texts = len(batch[0].texts)
+        num_texts = len(batch[0]['texts'])
         texts = [[] for _ in range(num_texts)]
         labels = []
 
         for example in batch:
-            for idx, text in enumerate(example.texts):
+            for idx, text in enumerate(example['texts']):
                 texts[idx].append(text)
 
-            labels.append(example.label)
+            labels.append(example['label'])
 
         labels = torch.tensor(labels).to(self._target_device)
 
@@ -597,21 +609,20 @@ class SentenceTransformer(nn.Sequential):
 
         return sentence_features, labels
 
-
     def _text_length(self, text: Union[List[int], List[List[int]]]):
         """
         Help function to get the length for the input text. Text can be either a string (which means a single text)
         a list of ints (which means a single tokenized text), or a tuple of list of ints
         (representing several text inputs to the model).
         """
-        if isinstance(text, str) or isinstance(text[0], int) or len(text) == 0:     #Single text, list of ints, or empty
+        if isinstance(text, str) or isinstance(text[0], int) or len(text) == 0:  # Single text, list of ints, or empty
             return len(text)
-        if isinstance(text, dict):                                                  #{key: value} case
+        if isinstance(text, dict):  # {key: value} case
             return len(next(iter(text.values())))
-        elif not hasattr(text, '__len__'):                                          #Object has no len() method
+        elif not hasattr(text, '__len__'):  # Object has no len() method
             return 1
         else:
-            return sum([len(t) for t in text])                                      #Sum of length of individual strings
+            return sum([len(t) for t in text])  # Sum of length of individual strings
 
     def fit(self,
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
@@ -624,7 +635,9 @@ class SentenceTransformer(nn.Sequential):
             optimizer_class: Type[Optimizer] = transformers.AdamW,
             optimizer_params: Dict[str, object] = None,
             weight_decay: float = 0.01,
-            evaluation_steps: int = 0,
+            evaluate_every_steps: int = 0,
+            nb_eval_steps: int = 0,
+            log_every_steps: int = 0,
             output_path: str = None,
             save_best_model: bool = True,
             max_grad_norm: float = 1,
@@ -634,6 +647,7 @@ class SentenceTransformer(nn.Sequential):
             checkpoint_path: str = None,
             checkpoint_save_steps: int = 500,
             checkpoint_save_total_limit: int = 0,
+            validation_dataloader=None,
             accelerator: Accelerator = None
             ):
         """
@@ -672,14 +686,24 @@ class SentenceTransformer(nn.Sequential):
             optimizer_params = {'lr': 2e-5}
 
         ##Add info to model card
-        #info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
+        # info_loss_functions = "\n".join(["- {} with {} training examples".format(str(loss), len(dataloader)) for dataloader, loss in train_objectives])
         info_loss_functions = []
         for dataloader, loss in train_objectives:
             info_loss_functions.extend(ModelCardTemplate.get_train_objective_info(dataloader, loss))
         info_loss_functions = "\n\n".join([text for text in info_loss_functions])
-        info_fit_parameters = json.dumps({"evaluator": fullname(evaluator), "epochs": epochs, "steps_per_epoch": steps_per_epoch, "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),  "optimizer_params": optimizer_params, "weight_decay": weight_decay, "evaluation_steps": evaluation_steps, "max_grad_norm": max_grad_norm }, indent=4, sort_keys=True)
+        info_fit_parameters = json.dumps({"evaluator": fullname(evaluator), "epochs": epochs, "steps_per_epoch": steps_per_epoch,
+                                          "scheduler": scheduler, "warmup_steps": warmup_steps, "optimizer_class": str(optimizer_class),
+                                          "optimizer_params": optimizer_params, "weight_decay": weight_decay,
+                                          "evaluate_every_steps": evaluate_every_steps, "nb_eval_steps": nb_eval_steps, "max_grad_norm": max_grad_norm}, indent=4, sort_keys=True)
         self._model_card_text = None
-        self._model_card_vars['{TRAINING_SECTION}'] = ModelCardTemplate.__TRAINING_SECTION__.replace("{LOSS_FUNCTIONS}", info_loss_functions).replace("{FIT_PARAMETERS}", info_fit_parameters)
+        self._model_card_vars['{TRAINING_SECTION}'] = ModelCardTemplate.__TRAINING_SECTION__.replace("{LOSS_FUNCTIONS}", info_loss_functions).replace("{FIT_PARAMETERS}",
+                                                                                                                                                      info_fit_parameters)
+
+        if evaluate_every_steps > 0:
+            assert nb_eval_steps > 0
+            assert validation_dataloader is not None
+
+        best_model_path = output_path + '/best_model/'
 
         # accelerate setup
         if accelerator is None:
@@ -688,7 +712,7 @@ class SentenceTransformer(nn.Sequential):
         if use_amp:
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
-
+        validation_dataloader.collate_fn = self.smart_batching_collate
         dataloaders = [dataloader for dataloader, _ in train_objectives]
         # Use smart batching
         for dataloader in dataloaders:
@@ -720,18 +744,25 @@ class SentenceTransformer(nn.Sequential):
             optimizers.append(optimizer)
             schedulers.append(scheduler_obj)
 
-        n_dataloaders, n_loss_models, n_optimizers = len(dataloaders), len(loss_models), len(optimizers)
-        prepared = accelerator.prepare(*dataloaders, *loss_models, *optimizers)
+        n_dataloaders, n_loss_models, n_optimizers, n_valid_dataloader = len(dataloaders), len(loss_models), len(optimizers), 1
+        prepared = accelerator.prepare(*dataloaders, *loss_models, *optimizers, validation_dataloader)
         dataloaders = prepared[0:n_dataloaders]
         loss_models = prepared[n_dataloaders:n_dataloaders + n_loss_models]
-        optimizers = prepared[n_dataloaders + n_loss_models:len(prepared)]
+        optimizers = prepared[n_dataloaders + n_loss_models:len(prepared) - 1]
+        validation_dataloader = prepared[-1]
 
         self.best_score = -9999999
 
         global_step = 0
         data_iterators = [iter(dataloader) for dataloader in dataloaders]
+        validation_iterator = iter(validation_dataloader)
         num_train_objectives = len(train_objectives)
+        training_losses = []
+        training_accuracies = []
+        index_last_train_loss = 0
+        index_last_eval_loss = 0
 
+        results = dict(eval_loss=[], eval_acc=[], train_loss=[], train_acc=[])
         skip_scheduler = False
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
@@ -775,8 +806,10 @@ class SentenceTransformer(nn.Sequential):
                                 scheduler.step()
                             global_step += 1
                     else:
-                        loss_value = loss_model(features, labels)
+                        loss_value, accuracy = loss_model(features, labels)
                         accelerator.backward(loss_value)
+                        training_losses.append(accelerator.gather(float(loss_value.detach().numpy())))
+                        training_accuracies.append(accelerator.gather(accuracy))
                         torch.nn.utils.clip_grad_norm_(loss_model.parameters(), max_grad_norm)
                         if training_steps % gradient_accumulation == 0:
                             optimizer.step()
@@ -786,9 +819,37 @@ class SentenceTransformer(nn.Sequential):
                             global_step += 1
                         training_steps += 1
 
-                if evaluation_steps > 0 and global_step % evaluation_steps == 0:
-                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, global_step, callback,
-                                               main_process=accelerator.is_main_process)
+                if log_every_steps > 0 and global_step % log_every_steps == 0:
+                    if accelerator.is_main_process:
+                        # get latest loss and acc
+                        train_loss = np.mean(training_losses[index_last_train_loss:])
+                        train_acc = np.mean(training_accuracies[index_last_train_loss:])
+                        print(f'Training step {global_step}: loss: {train_loss:.3f}, accuracy: {train_acc:.3f}')
+                    # keep track of number of loss stored
+                    index_last_train_loss = len(training_losses)
+                    assert index_last_train_loss == len(training_accuracies)
+
+                if evaluate_every_steps > 0 and global_step % evaluate_every_steps == 0:
+                    eval_loss, eval_acc = self.my_eval(loss_model, validation_iterator, validation_dataloader, nb_eval_steps, save_best_model, best_model_path, accelerator)
+                    if accelerator.is_main_process:
+                        # get new loss and acc since last eval step
+                        train_loss = np.mean(training_losses[index_last_eval_loss:])
+                        train_acc = np.mean(training_accuracies[index_last_eval_loss:])
+                        print(f'Evaluation step {global_step}: eval loss: {eval_loss:.3f}, eval accuracy: {eval_acc:.3f}')
+                        results['eval_acc'].append(eval_acc)
+                        results['eval_loss'].append(eval_loss)
+                        results['train_acc'].append(train_acc)
+                        results['train_loss'].append(train_loss)
+                        results['step'].append(global_step)
+                        frame = pd.DataFrame.from_dict(results)
+                        frame.to_csv(output_path + 'results.csv', index=False)
+
+                    # keep track of number of loss stored
+                    index_last_eval_loss = len(training_losses)
+                    assert index_last_eval_loss == len(training_accuracies)
+
+                    # self._eval_during_training(evaluator, output_path, save_best_model, epoch, global_step, callback,
+                    #                            main_process=accelerator.is_main_process)
 
                     for loss_model in loss_models:
                         loss_model.zero_grad()
@@ -798,17 +859,42 @@ class SentenceTransformer(nn.Sequential):
                         and global_step % checkpoint_save_steps == 0 and accelerator.is_main_process:
                     self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
 
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback,
-                                        main_process=accelerator.is_main_process)
+            # self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback,
+            #                             main_process=accelerator.is_main_process)
 
+        # if accelerator.is_main_process:
+        #     if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
+        #         self.save(output_path)
+        #
+        #     if checkpoint_path is not None:
+        #         self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
+
+    def my_eval(self, loss_model, validation_iterator, validation_dataloader, nb_eval_steps, save_best_model, output_path, accelerator):
+        loss_model.eval()
+        eval_losses = []
+        eval_accuracies = []
+
+        for i in range(nb_eval_steps):
+            try:
+                data = next(validation_iterator)
+            except StopIteration:
+                validation_iterator = iter(validation_dataloader)
+                data = next(validation_iterator)
+            features, labels = data
+            loss_value, accuracy = loss_model(features, labels)
+            eval_losses.append(accelerator.gather(float(loss_value.detach().numpy())))
+            eval_accuracies.append(accelerator.gather(accuracy))
+        eval_loss = np.mean(eval_losses)
+        eval_acc = np.mean(eval_accuracies)
         if accelerator.is_main_process:
-            if evaluator is None and output_path is not None:   #No evaluator, but output path: save final model version
-                self.save(output_path)
+            score = eval_acc
+            if score > self.best_score:
+                self.best_score = score
+                if save_best_model:
+                    self.save(output_path)
+        return eval_loss, eval_acc
 
-            if checkpoint_path is not None:
-                self._save_checkpoint(checkpoint_path, checkpoint_save_total_limit, global_step)
-
-
+        # accelerator.backward(loss_value)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
@@ -855,7 +941,6 @@ class SentenceTransformer(nn.Sequential):
                 old_checkpoints = sorted(old_checkpoints, key=lambda x: x['step'])
                 shutil.rmtree(old_checkpoints[0]['path'])
 
-
     def _load_auto_model(self, model_name_or_path, **auto_model_kwargs):
         """
         Creates a simple Transformer + Mean Pooling model and returns the modules
@@ -875,8 +960,11 @@ class SentenceTransformer(nn.Sequential):
             with open(config_sentence_transformers_json_path) as fIn:
                 self._model_config = json.load(fIn)
 
-            if '__version__' in self._model_config and 'sentence_transformers' in self._model_config['__version__'] and self._model_config['__version__']['sentence_transformers'] > __version__:
-                logger.warning("You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(self._model_config['__version__']['sentence_transformers'], __version__))
+            if '__version__' in self._model_config and 'sentence_transformers' in self._model_config['__version__'] and self._model_config['__version__'][
+                'sentence_transformers'] > __version__:
+                logger.warning(
+                    "You try to use a model that was created with version {}, however, your version is {}. This might cause unexpected behavior or errors. In that case, try to update to the latest version.\n\n\n".format(
+                        self._model_config['__version__']['sentence_transformers'], __version__))
 
         # Check if a readme exists
         model_card_path = os.path.join(model_path, 'README.md')
@@ -899,8 +987,6 @@ class SentenceTransformer(nn.Sequential):
             modules[module_config['name']] = module
 
         return modules
-
-
 
     @staticmethod
     def _get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
