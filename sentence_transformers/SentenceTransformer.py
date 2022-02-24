@@ -762,7 +762,7 @@ class SentenceTransformer(nn.Sequential):
         index_last_train_loss = 0
         index_last_eval_loss = 0
 
-        results = dict(eval_loss=[], eval_acc=[], train_loss=[], train_acc=[])
+        results = dict(eval_loss=[], eval_acc=[], train_loss=[], train_acc=[], step=[])
         skip_scheduler = False
 
         # run initial eval
