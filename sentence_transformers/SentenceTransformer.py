@@ -764,6 +764,22 @@ class SentenceTransformer(nn.Sequential):
 
         results = dict(eval_loss=[], eval_acc=[], train_loss=[], train_acc=[])
         skip_scheduler = False
+
+        # run initial eval
+        eval_loss, eval_acc = self.my_eval(loss_models[0], validation_iterator, validation_dataloader, nb_eval_steps, save_best_model, best_model_path, accelerator)
+        if accelerator.is_main_process:
+            # get new loss and acc since last eval step
+            train_loss = np.mean(training_losses[index_last_eval_loss:])
+            train_acc = np.mean(training_accuracies[index_last_eval_loss:])
+            logger.warning(f'Evaluation step {global_step}: eval loss: {eval_loss:.3f}, eval accuracy: {eval_acc:.3f}')
+            results['eval_acc'].append(eval_acc)
+            results['eval_loss'].append(eval_loss)
+            results['train_acc'].append(train_acc)
+            results['train_loss'].append(train_loss)
+            results['step'].append(global_step)
+            frame = pd.DataFrame.from_dict(results)
+            frame.to_csv(output_path + 'results.csv', index=False)
+
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
 
@@ -830,7 +846,7 @@ class SentenceTransformer(nn.Sequential):
                     assert index_last_train_loss == len(training_accuracies)
 
                 if evaluate_every_steps > 0 and global_step % evaluate_every_steps == 0:
-                    eval_loss, eval_acc = self.my_eval(loss_model, validation_iterator, validation_dataloader, nb_eval_steps, save_best_model, best_model_path, accelerator)
+                    eval_loss, eval_acc = self.my_eval(loss_models[0], validation_iterator, validation_dataloader, nb_eval_steps, save_best_model, best_model_path, accelerator)
                     if accelerator.is_main_process:
                         # get new loss and acc since last eval step
                         train_loss = np.mean(training_losses[index_last_eval_loss:])
@@ -881,7 +897,8 @@ class SentenceTransformer(nn.Sequential):
                 validation_iterator = iter(validation_dataloader)
                 data = next(validation_iterator)
             features, labels = data
-            loss_value, accuracy = loss_model(features, labels)
+            with torch.no_grad():
+                loss_value, accuracy = loss_model(features, labels)
             eval_losses.append(accelerator.gather(torch.atleast_1d(loss_value)))
             eval_accuracies.append(accelerator.gather(torch.atleast_1d(accuracy)))
         eval_loss = torch.mean(torch.cat(eval_losses))
