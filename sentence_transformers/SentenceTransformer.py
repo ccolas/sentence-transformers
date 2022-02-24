@@ -858,7 +858,7 @@ class SentenceTransformer(nn.Sequential):
                         results['train_loss'].append(float(train_loss))
                         results['step'].append(global_step)
                         frame = pd.DataFrame.from_dict(results)
-                        frame.to_csv(output_path + 'results.csv', index=False)
+                        frame.to_csv(output_path + '/results.csv', index=False)
 
                     # keep track of number of loss stored
                     index_last_eval_loss = len(training_losses)
