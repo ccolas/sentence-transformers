@@ -778,7 +778,7 @@ class SentenceTransformer(nn.Sequential):
             results['train_loss'].append(float(train_loss))
             results['step'].append(global_step)
             frame = pd.DataFrame.from_dict(results)
-            frame.to_csv(output_path + 'results.csv', index=False)
+            frame.to_csv(output_path + '/results.csv', index=False)
 
         for epoch in trange(epochs, desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
